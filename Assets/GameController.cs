@@ -25,7 +25,7 @@ public class GameController : MonoBehaviour {
 		}
 	}
 
-	private List<GameObject> bases = null;
+	[HideInInspector] public List<GameObject> bases = null;
 	// tile id, starting parent object, last tile
 	[HideInInspector] public List<TESTCLASS> slotLocations = null;
 	[HideInInspector] public List<GameObject> path = null;

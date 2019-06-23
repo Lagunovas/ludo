@@ -44,8 +44,15 @@ public sealed class EdServer : MonoBehaviour {
 		(int, GameController.TESTCLASS) returnValue = GameController.Instance.AssignPlayer();
 
 		if (returnValue.Item1 >= 0) {
-			PlayerController pc = connection.playerController.gameObject.GetComponent<PlayerController>();
-			pc.AssignSlot(returnValue.Item1, returnValue.Item2.startTileIndex, returnValue.Item2.lastTileIndex);
+			GameObject pawn = connection.playerController.gameObject;
+
+			for (uint i = 0; i < 3; ++i) {
+				GameObject newPawn = Instantiate(pawn);
+				NetworkServer.SpawnWithClientAuthority(newPawn, connection);
+				newPawn.GetComponent<PlayerController>().AssignSlot(returnValue.Item1, returnValue.Item2.startTileIndex, returnValue.Item2.lastTileIndex);
+			}
+
+			pawn.GetComponent<PlayerController>().AssignSlot(returnValue.Item1, returnValue.Item2.startTileIndex, returnValue.Item2.lastTileIndex);
 		} else {
 			connection.Disconnect();
 		}
@@ -85,11 +92,11 @@ public sealed class EdServer : MonoBehaviour {
 		Debug.Log("Client Connected.");
 	}
 
-	// Destroyed in the base call from FRNetworkManager
+	// Destroyed in the base call from EdNetworkManager
 	private void OnDisconnect(NetworkMessage message) {
 		Debug.Log("client disconnected.");
 
-		//FRDatabase.FRPlayers.Remove(message.conn.connectionId);
+		//EdDatabase.FRPlayers.Remove(message.conn.connectionId);
 	}
 
 }

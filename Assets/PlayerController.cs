@@ -9,16 +9,18 @@ public class PlayerController : NetworkBehaviour {
 	private int startTileIndex = -1;
 	private int lastTileIndex = -1;
 	private bool inner;
+	private bool inBase;
 	private void Start() {
 
 	}
 
 	// MOVE ELSEWHERE, CHECK IF SELECTED AFTER DIE WAS ROLLED
+	// Do not allow to select if inner && location == 5
 	private void Update() {
 		if (isLocalPlayer) {
-			if (Input.GetKeyDown(KeyCode.Space)) {
-				CmdMove();
-			}
+			//if (Input.GetKeyDown(KeyCode.Space)) {
+			//	CmdMove();
+			//}
 		}
 	}
 
@@ -27,7 +29,7 @@ public class PlayerController : NetworkBehaviour {
 			this.assignedSlot = assignedSlot;
 			this.startTileIndex = location = startTileIndex;
 			this.lastTileIndex = lastTileIndex;
-			RpcMove(startTileIndex, false);
+			RpcMoveToBase(assignedSlot);
 		}
 	}
 
@@ -77,6 +79,26 @@ public class PlayerController : NetworkBehaviour {
 		}
 
 		transform.position = position;
+	}
+
+	[ClientRpc]
+	private void RpcMoveToBase(int index) {
+		foreach (Transform childTransform in GameController.Instance.bases[index].transform) {
+			if (childTransform.childCount == 0) {
+				transform.position = childTransform.position;
+				transform.parent = childTransform;
+				MeshRenderer mr = GetComponent<MeshRenderer>();
+				//mr.material = ....
+				mr.enabled = true;
+				inBase = true;
+				return;
+			}
+		}
+	}
+
+	[ClientRpc]
+	private void RpcMoveToStart() {
+		transform.position = GameController.Instance.path[startTileIndex].transform.position;
 	}
 
 

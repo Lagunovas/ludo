@@ -51,7 +51,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3702019770383781702}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 0
   m_DynamicOccludee: 1
@@ -108,8 +108,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   serverOnly: 0
   localPlayerAuthority: 1
-  m_AssetId: 
-  m_SceneId: 799173927
+  m_AssetId: c995658298f7d264e8dc13d517578182
+  m_SceneId: 0
 --- !u!114 &4703497415391601594
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -136,3 +136,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 212fc7357e24c1c4d90c500d36a4c6b1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  syncInterval: 0.1
