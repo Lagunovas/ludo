@@ -9,6 +9,7 @@ TagManager:
   - Start
   - Ignore
   - Last
+  - Pawn
   layers:
   - Default
   - TransparentFX

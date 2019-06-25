@@ -11,13 +11,12 @@ GameObject:
   - component: {fileID: 3702019770383781722}
   - component: {fileID: 3702019770383781721}
   - component: {fileID: 3702019770383781720}
-  - component: {fileID: 3702019770383781703}
   - component: {fileID: 6565709768984486337}
   - component: {fileID: 4703497415391601594}
-  - component: {fileID: 5114959516123889621}
+  - component: {fileID: -2752642921360803476}
   m_Layer: 0
-  m_Name: PlayerPawn
-  m_TagString: Untagged
+  m_Name: Pawn
+  m_TagString: Pawn
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -30,7 +29,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3702019770383781702}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 5, z: 0}
+  m_LocalPosition: {x: -66, y: 0, z: 11}
   m_LocalScale: {x: 5, y: 5, z: 5}
   m_Children: []
   m_Father: {fileID: 0}
@@ -81,19 +80,6 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
---- !u!135 &3702019770383781703
-SphereCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3702019770383781702}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.5
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &6565709768984486337
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -108,8 +94,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   serverOnly: 0
   localPlayerAuthority: 1
-  m_AssetId: c995658298f7d264e8dc13d517578182
-  m_SceneId: 0
+  m_AssetId: 
+  m_SceneId: 3236336418
 --- !u!114 &4703497415391601594
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -124,7 +110,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   syncInterval: 0.1
   compressRotation: 1
---- !u!114 &5114959516123889621
+--- !u!114 &-2752642921360803476
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -137,3 +123,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   syncInterval: 0.1
+  canSelect: 0
+  isSelected: 0

@@ -1,15 +1,22 @@
-﻿//using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
-public class GameController : MonoBehaviour {
+using Mirror;
 
-	public class TESTCLASS {
+public class GameController : NetworkBehaviour {
+
+	private enum GameState {
+		AWAITING_FOR_PLAYERS,
+		STARTED
+
+	}
+
+	public class Player {
 		public int startTileIndex;
 		public Transform[] innerPath;
 		public int lastTileIndex;
 
-		public TESTCLASS(int startTileIndex, int lastTileIndex) {
+		public Player(int startTileIndex, int lastTileIndex) {
 			this.startTileIndex = startTileIndex;
 
 			GameObject startTile = Instance.path[startTileIndex];
@@ -26,13 +33,18 @@ public class GameController : MonoBehaviour {
 	}
 
 	[HideInInspector] public List<GameObject> bases = null;
-	// tile id, starting parent object, last tile
-	[HideInInspector] public List<TESTCLASS> slotLocations = null;
+	[HideInInspector] public List<Player> player = null;
 	[HideInInspector] public List<GameObject> path = null;
 
 	public int numberOfTiles;
 
 	private bool[] slots = null;
+
+	[SyncVar] public int currentTurn = -2;
+
+	public GameObject pawnPrefab = null;
+
+	private GameState state = GameState.AWAITING_FOR_PLAYERS;
 
 	public static GameController Instance {
 		get;
@@ -44,51 +56,65 @@ public class GameController : MonoBehaviour {
 			Destroy(gameObject);
 		} else {
 			Instance = this;
+
+			currentTurn = 0;
+			bases = new List<GameObject>();
+			player = new List<Player>();
+			path = new List<GameObject>();
+
+			ProcessMap();
+
+			slots = new bool[player.Count];
+
+			Random.InitState((int)System.DateTime.Now.Ticks);
 		}
 	}
 
 	public int RollDice() => Random.Range(1, 7);
 
-	public (int, TESTCLASS) AssignPlayer() {
+	public int AssignPlayerSlot() {
 		for (int i = 0; i < slots.Length; ++i) {
 			if (!slots[i]) {
 				slots[i] = true;
-				return (i, slotLocations[i]);
+				return i;
 			}
 		}
 
-		return (-1, null);
+		return -1;
 	}
 
-	private void Start() {
-		bases = new List<GameObject>();
-		slotLocations = new List<TESTCLASS>();
-		path = new List<GameObject>();
+	private bool AllSlotsFilled() {
+		foreach (bool filled in slots) {
+			if (!filled) {
+				return false;
+			}
+		}
 
-		slots = new bool[4]; // ????
-
-		ProcessMap();
-
-		Random.InitState((int) System.DateTime.Now.Ticks);
+		state = GameState.STARTED;
+		return true;
 	}
 
-	private void Update() {
+	private void FixedUpdate() {
+		if (isServer) {
+			if (state == GameState.STARTED || AllSlotsFilled()) {
 
+			}
+		}
 	}
 
 	private void ProcessMap() {
 		int lastTileIndex = -1;
 
-		foreach (Transform transform in transform) {
-			GameObject go = transform.gameObject;
+		foreach (Transform childTransform in transform) {
+			GameObject go = childTransform.gameObject;
 			if (go.activeInHierarchy) { // ignore center tile (or use ignore tag)
-				switch (transform.tag) {
+				switch (childTransform.tag) {
 					case "Base":
 						bases.Add(go);
 						break;
 					case "Start":
 						path.Add(go);
-						slotLocations.Add(new TESTCLASS(path.Count - 1, lastTileIndex));
+						player.Add(new Player(path.Count - 1, lastTileIndex));
 						lastTileIndex = -1;
 						break;
 					case "Finish":
@@ -109,7 +135,7 @@ public class GameController : MonoBehaviour {
 			}
 		}
 
-		TESTCLASS a = slotLocations[0];
+		Player a = player[0];
 		a.lastTileIndex = lastTileIndex;
 
 		numberOfTiles = path.Count;

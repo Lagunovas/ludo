@@ -27,7 +27,7 @@ public sealed class EdServer : MonoBehaviour {
 	}
 
 	private void OnServerAddPlayer(NetworkConnection connection, AddPlayerMessage extraMessage, System.Action baseMethodCallback) { // called when client call add player
-		//UIDMessage message = MessagePacker.Unpack<UIDMessage>(extraMessage.value);
+																																	//UIDMessage message = MessagePacker.Unpack<UIDMessage>(extraMessage.value);
 
 		//Debug.Log(message.uid);
 
@@ -41,22 +41,23 @@ public sealed class EdServer : MonoBehaviour {
 
 		baseMethodCallback.Invoke();
 
-		(int, GameController.TESTCLASS) returnValue = GameController.Instance.AssignPlayer();
+		PlayerController playerController = connection.playerController.gameObject.GetComponent<PlayerController>();
 
-		if (returnValue.Item1 >= 0) {
-			GameObject pawn = connection.playerController.gameObject;
+		if (playerController) {
+			int assignedSlot = GameController.Instance.AssignPlayerSlot();
 
-			for (uint i = 0; i < 3; ++i) {
-				GameObject newPawn = Instantiate(pawn);
-				NetworkServer.SpawnWithClientAuthority(newPawn, connection);
-				newPawn.GetComponent<PlayerController>().AssignSlot(returnValue.Item1, returnValue.Item2.startTileIndex, returnValue.Item2.lastTileIndex);
+			if (assignedSlot >= 0) {
+				for (uint i = 0; i < GameController.Instance.bases.Count; ++i) {
+					GameObject newPawn = Instantiate(GameController.Instance.pawnPrefab);
+					NetworkServer.SpawnWithClientAuthority(newPawn, connection);
+					playerController.pawns.Add(newPawn.GetComponent<PawnController>());
+				}
+
+				playerController.AssignSlot(assignedSlot);
+			} else {
+				connection.Disconnect();
 			}
-
-			pawn.GetComponent<PlayerController>().AssignSlot(returnValue.Item1, returnValue.Item2.startTileIndex, returnValue.Item2.lastTileIndex);
-		} else {
-			connection.Disconnect();
 		}
-
 	}
 
 	private void OnPlayerReady(NetworkConnection connection) {

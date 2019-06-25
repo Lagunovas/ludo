@@ -199,7 +199,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &5902986720048494770
 Transform:
   m_ObjectHideFlags: 0
@@ -1367,7 +1367,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &5902986720271955846
 Transform:
   m_ObjectHideFlags: 0
@@ -1488,7 +1488,7 @@ GameObject:
   - component: {fileID: 5902986720289844473}
   m_Layer: 0
   m_Name: Plane 11
-  m_TagString: Untagged
+  m_TagString: Last
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -2271,7 +2271,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &5902986720353700954
 Transform:
   m_ObjectHideFlags: 0
@@ -2945,7 +2945,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5902986720522686073}
-  - component: {fileID: 5902986720522685958}
+  - component: {fileID: 676822280288237313}
+  - component: {fileID: 7546465703849868567}
   m_Layer: 0
   m_Name: Four-Player-Map
   m_TagString: Untagged
@@ -3032,7 +3033,23 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &5902986720522685958
+--- !u!114 &676822280288237313
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5902986720522686072}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  serverOnly: 0
+  localPlayerAuthority: 0
+  m_AssetId: 
+  m_SceneId: 4127772104
+--- !u!114 &7546465703849868567
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -3044,6 +3061,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 97bd2fe6d59d78942bec02d5fd0d9083, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  syncInterval: 0.1
+  bases: []
+  path: []
+  numberOfTiles: 0
+  currentTurn: -2
+  pawnPrefab: {fileID: 3702019770383781702, guid: c995658298f7d264e8dc13d517578182,
+    type: 3}
 --- !u!1 &5902986720529946830
 GameObject:
   m_ObjectHideFlags: 0
@@ -4255,7 +4279,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &5902986720720856980
 Transform:
   m_ObjectHideFlags: 0
@@ -4469,7 +4493,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &5902986720819686408
 Transform:
   m_ObjectHideFlags: 0
@@ -5361,7 +5385,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &5902986721105242195
 Transform:
   m_ObjectHideFlags: 0
@@ -5575,7 +5599,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &5902986721163222813
 Transform:
   m_ObjectHideFlags: 0
@@ -6156,7 +6180,7 @@ GameObject:
   - component: {fileID: 5902986721309644943}
   m_Layer: 0
   m_Name: Plane 11
-  m_TagString: Untagged
+  m_TagString: Last
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -6248,7 +6272,7 @@ GameObject:
   - component: {fileID: 5902986721329587488}
   m_Layer: 0
   m_Name: Plane 11
-  m_TagString: Untagged
+  m_TagString: Last
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -6984,7 +7008,7 @@ GameObject:
   - component: {fileID: 5902986721499733740}
   m_Layer: 0
   m_Name: Plane 11
-  m_TagString: Untagged
+  m_TagString: Last
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -8681,7 +8705,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &5902986722044101083
 Transform:
   m_ObjectHideFlags: 0

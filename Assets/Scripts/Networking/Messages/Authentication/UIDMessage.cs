@@ -1,6 +1,4 @@
-﻿using Mirror;
-
-public class UIDMessage : MessageBase {
+﻿public class UIDMessage : Mirror.MessageBase {
 
 	public string uid;
 
