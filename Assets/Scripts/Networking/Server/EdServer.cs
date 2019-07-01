@@ -22,12 +22,13 @@ public sealed class EdServer : MonoBehaviour {
 		EdNetworkManager edNetworkManager = GetComponent<EdNetworkManager>();
 		edNetworkManager.registerCustomHandlers = RegisterHandlers;
 		edNetworkManager.customOnServerConnect = OnConnect;
+		edNetworkManager.customOnServerDisconnect = OnDisconnect;
 		edNetworkManager.customOnServerReady = OnPlayerReady;
 		edNetworkManager.customOnServerAddPlayer = OnServerAddPlayer;
 	}
 
 	private void OnServerAddPlayer(NetworkConnection connection, AddPlayerMessage extraMessage, System.Action baseMethodCallback) { // called when client call add player
-																																	//UIDMessage message = MessagePacker.Unpack<UIDMessage>(extraMessage.value);
+		//UIDMessage message = MessagePacker.Unpack<UIDMessage>(extraMessage.value);
 
 		//Debug.Log(message.uid);
 
@@ -44,16 +45,21 @@ public sealed class EdServer : MonoBehaviour {
 		PlayerController playerController = connection.playerController.gameObject.GetComponent<PlayerController>();
 
 		if (playerController) {
-			int assignedSlot = GameController.Instance.AssignPlayerSlot();
+			int assignedSlot = GameController.Instance.AssignPlayerSlot(playerController);
 
 			if (assignedSlot >= 0) {
-				for (uint i = 0; i < GameController.Instance.bases.Count; ++i) {
+				for (uint i = 0; i < GameController.Instance.bases[0].transform.childCount; ++i) {
 					GameObject newPawn = Instantiate(GameController.Instance.pawnPrefab);
+					newPawn.GetComponent<PawnController>().sphereMaterial = assignedSlot; // pick color here
 					NetworkServer.SpawnWithClientAuthority(newPawn, connection);
 					playerController.pawns.Add(newPawn.GetComponent<PawnController>());
 				}
 
 				playerController.AssignSlot(assignedSlot);
+
+				//if (GameController.Instance.AllSlotsFilled()) {
+				//	GameController.Instance.StartGame();
+				//}
 			} else {
 				connection.Disconnect();
 			}
@@ -94,8 +100,12 @@ public sealed class EdServer : MonoBehaviour {
 	}
 
 	// Destroyed in the base call from EdNetworkManager
-	private void OnDisconnect(NetworkMessage message) {
+	private void OnDisconnect(NetworkConnection connection) {
 		Debug.Log("client disconnected.");
+
+		//if (GameController.Instance.state == GameController.GameState.AWAITING_FOR_PLAYERS) {
+			GameController.Instance.slots[connection.playerController.gameObject.GetComponent<PlayerController>().slot] = null;
+		//}
 
 		//EdDatabase.FRPlayers.Remove(message.conn.connectionId);
 	}

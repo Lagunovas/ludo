@@ -1,20 +1,27 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
+using TMPro;
+
 using Mirror;
 
 public class GameController : NetworkBehaviour {
 
-	private enum GameState {
+	public enum GameState {
 		AWAITING_FOR_PLAYERS,
 		STARTED
 
 	}
 
+	private TextMeshProUGUI currentTurnTMP = null;
+
 	public class Player {
 		public int startTileIndex;
 		public Transform[] innerPath;
 		public int lastTileIndex;
+
+		public TextMeshProUGUI rollsLeftTMP;
+		public TextMeshProUGUI rolledAmountTMP;
 
 		public Player(int startTileIndex, int lastTileIndex) {
 			this.startTileIndex = startTileIndex;
@@ -38,13 +45,24 @@ public class GameController : NetworkBehaviour {
 
 	public int numberOfTiles;
 
-	private bool[] slots = null;
+	public PlayerController[] slots = null;
 
-	[SyncVar] public int currentTurn = -2;
+	[SyncVar(hook = "ChangeCurrentTurn")] public int currentTurn = -2;
+
+	public void ChangeCurrentTurn(int newCurrentTurn) {
+		currentTurn = newCurrentTurn;
+		currentTurnTMP.text = "Current Turn: " + (currentTurn + 1);
+	}
 
 	public GameObject pawnPrefab = null;
 
-	private GameState state = GameState.AWAITING_FOR_PLAYERS;
+	public GameState state = GameState.AWAITING_FOR_PLAYERS;
+
+	public Material[] materials = null;
+
+	// AUDIO
+
+	public AudioClip[] sounds = null;
 
 	public static GameController Instance {
 		get;
@@ -57,25 +75,24 @@ public class GameController : NetworkBehaviour {
 		} else {
 			Instance = this;
 
-			currentTurn = 0;
 			bases = new List<GameObject>();
 			player = new List<Player>();
 			path = new List<GameObject>();
 
 			ProcessMap();
 
-			slots = new bool[player.Count];
+			slots = new PlayerController[bases.Count];
 
-			Random.InitState((int)System.DateTime.Now.Ticks);
+			Random.InitState((int) System.DateTime.Now.Ticks);
 		}
 	}
 
 	public int RollDice() => Random.Range(1, 7);
 
-	public int AssignPlayerSlot() {
+	public int AssignPlayerSlot(PlayerController playerController) {
 		for (int i = 0; i < slots.Length; ++i) {
-			if (!slots[i]) {
-				slots[i] = true;
+			if (slots[i] == null) {
+				slots[i] = playerController;
 				return i;
 			}
 		}
@@ -83,7 +100,8 @@ public class GameController : NetworkBehaviour {
 		return -1;
 	}
 
-	private bool AllSlotsFilled() {
+	[Server]
+	public bool AllSlotsFilled() {
 		foreach (bool filled in slots) {
 			if (!filled) {
 				return false;
@@ -97,7 +115,24 @@ public class GameController : NetworkBehaviour {
 	private void FixedUpdate() {
 		if (isServer) {
 			if (state == GameState.STARTED || AllSlotsFilled()) {
+				if (currentTurn == -2) {
+					currentTurn = 0;
+					slots[currentTurn].rollsLeft = 1;
+				} else {
+					if (slots[currentTurn]) { // skip player if left
+						if (slots[currentTurn].IsTurnFinished()) {
+							slots[currentTurn++].ResetSixCount();
+						}
+					} else {
+						currentTurn++;
+					}
 
+					if (currentTurn == bases.Count) {
+						currentTurn = 0;
+					}
+
+					slots[currentTurn].rollsLeft = 1;
+				}
 			}
 		}
 	}
@@ -109,6 +144,14 @@ public class GameController : NetworkBehaviour {
 			GameObject go = childTransform.gameObject;
 			if (go.activeInHierarchy) { // ignore center tile (or use ignore tag)
 				switch (childTransform.tag) {
+					case "CurrentTurn":
+						currentTurnTMP = childTransform.GetChild(0).GetComponent<TextMeshProUGUI>();
+						break;
+					case "UI":
+						Player currentPlayer = player[player.Count - 1];
+						currentPlayer.rollsLeftTMP = childTransform.GetChild(0).GetComponent<TextMeshProUGUI>();
+						currentPlayer.rolledAmountTMP = childTransform.GetChild(1).GetComponent<TextMeshProUGUI>();
+						break;
 					case "Base":
 						bases.Add(go);
 						break;
@@ -125,9 +168,9 @@ public class GameController : NetworkBehaviour {
 						break;
 					case "Ignore":
 						continue;
-					case "Safe":
-						path.Add(go);
-						break;
+					//case "Safe":
+					//	path.Add(go);
+					//	break;
 					default:
 						path.Add(go);
 						break;
