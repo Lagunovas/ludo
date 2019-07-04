@@ -1,9 +1,11 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 using TMPro;
 
 using Mirror;
+using System.Collections;
 
 public class GameController : NetworkBehaviour {
 
@@ -21,7 +23,7 @@ public class GameController : NetworkBehaviour {
 		public int lastTileIndex;
 
 		public TextMeshProUGUI rollsLeftTMP;
-		public TextMeshProUGUI rolledAmountTMP;
+		public Image diceImage;
 
 		public Player(int startTileIndex, int lastTileIndex) {
 			this.startTileIndex = startTileIndex;
@@ -47,11 +49,15 @@ public class GameController : NetworkBehaviour {
 
 	public PlayerController[] slots = null;
 
-	[SyncVar(hook = "ChangeCurrentTurn")] public int currentTurn = -2;
+	[SyncVar(hook = nameof(ChangeCurrentTurn))] public int currentTurn = -2;
 
 	public void ChangeCurrentTurn(int newCurrentTurn) {
 		currentTurn = newCurrentTurn;
 		currentTurnTMP.text = "Current Turn: " + (currentTurn + 1);
+
+		if (currentTurn >= 0) {
+			ChangeDiceSide(currentTurn, diceSides.Length - 1);
+		}
 	}
 
 	public GameObject pawnPrefab = null;
@@ -64,9 +70,30 @@ public class GameController : NetworkBehaviour {
 
 	public AudioClip[] sounds = null;
 
+	// Dice stuff
+	public Color backgroundColor = Color.white;
+	public Sprite[] diceSides = null;
+
 	public static GameController Instance {
 		get;
 		private set;
+	}
+
+	public void ChangeDiceSide(int slot, int diceSide) {
+		if (slot != -1) {
+			Sprite diceSideSprite = null;
+			Color diceSideColour = Color.white;
+
+			if (diceSide >= 0) {
+				diceSideSprite = diceSides[diceSide];
+			} else {
+				diceSideColour = backgroundColor;
+			}
+
+			Image diceImage = player[slot].diceImage;
+			diceImage.sprite = diceSideSprite;
+			diceImage.color = diceSideColour;
+		}
 	}
 
 	private void Awake() {
@@ -74,6 +101,11 @@ public class GameController : NetworkBehaviour {
 			Destroy(gameObject);
 		} else {
 			Instance = this;
+
+			float halfWidth = Mathf.Tan(0.5f * 60f * Mathf.Deg2Rad);
+			float halfHeight = halfWidth * Screen.height / Screen.width;
+			float verticalFoV = 2.0f * Mathf.Atan(halfHeight) * Mathf.Rad2Deg;
+			Camera.main.fieldOfView = verticalFoV;
 
 			bases = new List<GameObject>();
 			player = new List<Player>();
@@ -85,6 +117,11 @@ public class GameController : NetworkBehaviour {
 
 			Random.InitState((int) System.DateTime.Now.Ticks);
 		}
+	}
+
+	public override void OnStartServer() {
+		base.OnStartServer();
+		StartCoroutine(GameLoop());
 	}
 
 	public int RollDice() => Random.Range(1, 7);
@@ -112,28 +149,45 @@ public class GameController : NetworkBehaviour {
 		return true;
 	}
 
-	private void FixedUpdate() {
-		if (isServer) {
-			if (state == GameState.STARTED || AllSlotsFilled()) {
-				if (currentTurn == -2) {
-					currentTurn = 0;
-					slots[currentTurn].rollsLeft = 1;
-				} else {
-					if (slots[currentTurn]) { // skip player if left
-						if (slots[currentTurn].IsTurnFinished()) {
-							slots[currentTurn++].ResetSixCount();
-						}
-					} else {
-						currentTurn++;
-					}
-
-					if (currentTurn == bases.Count) {
+	[Server]
+	private IEnumerator GameLoop() {
+		while (true) {
+			if (isServer) {
+				if (state == GameState.STARTED || AllSlotsFilled()) {
+					if (currentTurn == -2) {
 						currentTurn = 0;
-					}
+						slots[currentTurn].rollsLeft = 1;
+					} else { // code REP
+						if (slots[currentTurn]) { // skip player if left
+							if (slots[currentTurn].IsTurnFinished()) {
 
-					slots[currentTurn].rollsLeft = 1;
+								yield return new WaitForSeconds(1);
+
+								slots[currentTurn].diceSide = -1;
+								slots[currentTurn].ResetSixCount();
+
+								if ((currentTurn + 1) >= bases.Count) {
+									currentTurn = 0;
+								} else {
+									currentTurn++;
+								}
+
+								slots[currentTurn].rollsLeft = 1;
+							}
+						} else {
+							if ((currentTurn + 1) >= bases.Count) {
+								currentTurn = 0;
+							} else {
+								currentTurn++;
+							}
+
+							slots[currentTurn].rollsLeft = 1;
+						}
+					}
 				}
 			}
+
+			yield return new WaitForFixedUpdate();
 		}
 	}
 
@@ -150,7 +204,7 @@ public class GameController : NetworkBehaviour {
 					case "UI":
 						Player currentPlayer = player[player.Count - 1];
 						currentPlayer.rollsLeftTMP = childTransform.GetChild(0).GetComponent<TextMeshProUGUI>();
-						currentPlayer.rolledAmountTMP = childTransform.GetChild(1).GetComponent<TextMeshProUGUI>();
+						currentPlayer.diceImage = childTransform.GetChild(1).GetComponent<Image>();
 						break;
 					case "Base":
 						bases.Add(go);
@@ -168,9 +222,6 @@ public class GameController : NetworkBehaviour {
 						break;
 					case "Ignore":
 						continue;
-					//case "Safe":
-					//	path.Add(go);
-					//	break;
 					default:
 						path.Add(go);
 						break;

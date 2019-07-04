@@ -2,17 +2,43 @@
 
 using Mirror;
 using System.Collections.Generic;
+using System.Collections;
+
+using UnityEngine.UI;
 
 public class PlayerController : NetworkBehaviour {
 
-	[SyncVar] public int slot = -1; // For update, pawn controller has to use seperate
+	[SyncVar(hook = nameof(OnChangeSlot))] public int slot = -1; // For update, pawn controller has to use seperate
 	public bool pawnSelected = false;
 
+	private void OnChangeSlot(int slot) {
+		this.slot = slot;
+
+		if (slot != -1) {
+			GameController.Instance.player[slot].diceImage.gameObject.GetComponent<Button>().onClick.AddListener(() => ClientRoll());
+			//GameController.Instance.ChangeDiceSide(slot, -1);
+		}
+	}
+
+	[Client]
+	private void ClientRoll() {
+		if (isClient) {
+			if (hasAuthority) {
+				if (slot == GameController.Instance.currentTurn) {
+					if (rollsLeft > 0) {
+						if (rolledAmount == 0) {
+							CmdRoll();
+						}
+					}
+				}
+			}
+		}
+	}
 	// SERVER ONLY
 
 	public List<PawnController> pawns;
 	[SyncVar(hook = nameof(OnChangeRollsLeft))] public int rollsLeft; // display on client
-	[SyncVar(hook = nameof(OnChangeRolledAmount))] public int rolledAmount;
+	[SyncVar] public int rolledAmount;
 	private int sixInARow;
 
 	void OnChangeRollsLeft(int rollsLeft) {
@@ -20,14 +46,6 @@ public class PlayerController : NetworkBehaviour {
 
 		if (slot != -1) {
 			GameController.Instance.player[slot].rollsLeftTMP.text = "Rolls Left: " + rollsLeft;
-		}
-	}
-
-	void OnChangeRolledAmount(int rolledAmount) {
-		this.rolledAmount = rolledAmount;
-
-		if (slot != -1) {
-			GameController.Instance.player[slot].rolledAmountTMP.text = "Rolled: " + rolledAmount;
 		}
 	}
 
@@ -40,18 +58,14 @@ public class PlayerController : NetworkBehaviour {
 		pawns = new List<PawnController>();
 	}
 
+	private void Start() {
+		
+	}
+
 	private void Update() {
 		if (isClient) {
 			if (hasAuthority) {
 				if (slot == GameController.Instance.currentTurn) {
-					if (rollsLeft > 0) {
-						if (rolledAmount == 0) {
-							if (Input.GetKeyDown(KeyCode.Space)) {
-								CmdRoll();
-							}
-						}
-					}
-
 					if (Input.GetKeyDown(KeyCode.R)) {
 						CmdSkipTurn();
 					}
@@ -79,9 +93,10 @@ public class PlayerController : NetworkBehaviour {
 									}
 								}
 							}
-
 						}
 					}
+
+
 
 				}
 			}
@@ -97,12 +112,56 @@ public class PlayerController : NetworkBehaviour {
 		rollsLeft = rolledAmount = 0;
 	}
 
+	[SyncVar(hook = nameof(OnChangeDiceSide))] public int diceSide = -1;
+
+	private void OnChangeDiceSide(int diceSide) {
+		this.diceSide = diceSide;
+		GameController.Instance.ChangeDiceSide(slot, diceSide);
+	}
+
+	[Server]
+	private int RandomUnique() {
+		int randomUniqueNumber;
+
+		do {
+			randomUniqueNumber = Random.Range(0, 6);
+		} while (randomUniqueNumber == previousRandomNumber);
+
+		return previousRandomNumber = randomUniqueNumber;
+	}
+
+	private int previousRandomNumber = -1;
+	private bool rolling;
+
 	[Command]
 	private void CmdRoll() {
+		ServerRoll();
+	}
+
+	[Server]
+	private void ServerRoll() {
+		if (rolling == false) {
+			rolling = true;
+			StartCoroutine(Roll(Random.Range(5, 15)));
+		}
+	}
+
+	private IEnumerator Roll(int times) {
 		if (rollsLeft > 0) {
 			if (rolledAmount == 0) {
+
+				while (times > 0) {
+					times--;
+					diceSide = RandomUnique();
+					yield return new WaitForSeconds(0.075f);
+				}
+
 				int rollsLeft = this.rollsLeft - 1;
 				int rolledAmount = GameController.Instance.RollDice();
+
+				diceSide = previousRandomNumber = rolledAmount - 1;
+
+				yield return new WaitForSeconds(0.075f);
 
 				if (rolledAmount == 6) {
 					rollsLeft++;
@@ -115,20 +174,13 @@ public class PlayerController : NetworkBehaviour {
 					this.rollsLeft = this.rolledAmount = 0; // sixInArow is reset in the GameController.
 					Debug.Log("Rolled 6 three times in a row, skip turn.");
 				} else {
-					if (AbleToMove(rolledAmount)) {
-						this.rollsLeft = rollsLeft;
-						this.rolledAmount = rolledAmount;
-					} else {
-						Debug.Log("Unable to move, skip turn!");
-						this.rollsLeft = 0;
-						this.rolledAmount = 0;
-					}
-
-					//this.rollsLeft = rollsLeft;
+					AttemptAutoMove(rollsLeft, rolledAmount);
 				}
 
 				Debug.Log("rollsLeft: " + rollsLeft);
 				Debug.Log("rolledAmount: " + rolledAmount);
+
+				rolling = false;
 			}
 		}
 	}
@@ -138,29 +190,46 @@ public class PlayerController : NetworkBehaviour {
 	}
 
 	[Server]
-	private bool AbleToMove(int rolledAmount) {
+	private void AttemptAutoMove(int rollsLeft, int rolledAmount) {
 		int possibleMoves = 0;
+		int staged = 0;
+		PawnController stagedPawn = null;
 		int index = -1;
 
 		for (int i = 0; i < pawns.Count; ++i) {
 			PawnController pawn = pawns[i];
 			if (pawn.SetCanSelect(rolledAmount)) {
 				possibleMoves++;
+
+				if (pawn.IsStaged) {
+					staged++;
+					stagedPawn = pawn;
+				}
+
 				index = i;
 			}
 		}
 
+		if (possibleMoves == staged && possibleMoves != 0) { // TEST
+			possibleMoves = 1;
+		}
+
 		switch (possibleMoves) {
 			case 0:
-				return false;
+				this.rollsLeft = this.rolledAmount = 0;
+				break;
 			case 1:
-				// move automatically
-				PawnController pawn = pawns[index];
-				// move this pawn
-				// set selected
-				return true;
+				PawnController pawn = (staged > 0) ? stagedPawn : pawns[index];
+				this.rolledAmount = rolledAmount;
+				this.rollsLeft = rollsLeft;
+				pawn.isSelected = true;
+				// Must be done here, otherwise in loop will skip players turn
+				pawn.ServerMove(rolledAmount);
+				break;
 			default:
-				return true;
+				this.rollsLeft = rollsLeft;
+				this.rolledAmount = rolledAmount;
+				break;
 		}
 	}
 
@@ -179,6 +248,8 @@ public class PlayerController : NetworkBehaviour {
 	public void AssignSlot(int slot) {
 		if (this.slot == -1) {
 			this.slot = slot;
+
+			GameController.Instance.player[slot].diceImage.gameObject.GetComponent<Button>().onClick.AddListener(() => ServerRoll());
 
 			foreach (PawnController pawn in pawns) {
 				pawn.Init(this);

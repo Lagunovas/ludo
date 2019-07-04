@@ -14,13 +14,17 @@ public class PawnController : NetworkBehaviour {
 
 	#region Server Side
 	private bool atFinish;
+
+	public bool IsStaged {
+		get;
+		private set;
+	}
 	#endregion
 
 	private int currentTileIndex; // order index
 	private int startTileIndex = -1;
 	private int lastTileIndex = -1;
 	private bool inner;
-	private bool staged; // in base
 
 	[SyncVar] public bool canSelect;
 	public bool isSelected;
@@ -63,9 +67,9 @@ public class PawnController : NetworkBehaviour {
 		if (atFinish) {
 			canSelect = false;
 		} else {
-			if (staged && rolledAmount == 6) {
+			if (IsStaged && rolledAmount == 6) {
 				canSelect = true;
-			} else if (!staged && !inner) {
+			} else if (!IsStaged && !inner) {
 				canSelect = true;
 			} else if (inner && (currentTileIndex + rolledAmount) <= 5) { // same as IsSelectable
 				canSelect = true;
@@ -80,14 +84,13 @@ public class PawnController : NetworkBehaviour {
 	public bool IsSelectable() => (!inner || (inner && currentTileIndex == lastTileIndex)) && !atFinish;
 
 	[Server]
-	public bool OnSelect() {
+	public void OnSelect() {
 		if (canSelect) {
 			if (!isSelected) {
-				return isSelected = true;
+				isSelected = true;
+				ServerMove(playerController.rolledAmount);
 			}
 		}
-
-		return false;
 	}
 
 	private bool scaleDirection;
@@ -120,35 +123,41 @@ public class PawnController : NetworkBehaviour {
 		}
 	}
 
-	private void FixedUpdate() {
-		if (isServer) {
-			if (playerController) {
-				if (playerController.rolledAmount > 0) {
-					ServerMove();
-				}
+	//private void FixedUpdate() {
+	//	if (isServer) {
+	//		if (playerController) {
+	//			if (playerController.rolledAmount > 0) {
+	//				ServerMove();
+	//			}
+	//		}
+	//	}
+	//}
+
+	[Server]
+	public void ServerMove(int rolledAmount) {
+		if (!atFinish) {
+			if (isSelected && !isMoving) { // prevent from server spam even if at finish
+				isMoving = true;
+				StartCoroutine(Move(rolledAmount));
 			}
 		}
 	}
 
-	[Server]
-	public void ServerMove() {
-		if (!atFinish) {
-			if (isSelected && !isMoving) { // prevent from server spam even if at finish
-				isMoving = true;
-				StartCoroutine(Move(playerController.rolledAmount));
-			}
-		}
+	[ClientRpc]
+	private void RpcBonusRoll(int slot) { // ditch slot int somehow, rework fields
+		GameController.Instance.ChangeDiceSide(slot, GameController.Instance.diceSides.Length - 1); // Set to "PRESS TO ROLL"
 	}
 
 	[Server]
 	private IEnumerator Move(int rolledAmount) {
 		int destinationTileIndex = -1;
 
-		if (staged) {
+		if (IsStaged) {
 			if (rolledAmount == 6) {
 				rolledAmount = 0;
-				staged = false;
+				IsStaged = false;
 				destinationTileIndex = startTileIndex;
+				RpcBonusRoll(slot);
 				TargetMoveToStart(playerController.connectionToClient);
 			}
 		} else {
@@ -177,6 +186,7 @@ public class PawnController : NetworkBehaviour {
 
 						if (atFinish) {
 							Debug.Log("=== BONUS MOVE GRANTED DUE TO LANDING ON FINISH ===");
+							RpcBonusRoll(slot);
 							playerController.rollsLeft++;
 						}
 					}
@@ -225,9 +235,6 @@ public class PawnController : NetworkBehaviour {
 
 					List<int> toEliminate = new List<int>();
 
-					//if (pawnsOnTile[slot] >= 1) { // build a block
-						// eliminate any other single pawns
-
 					for (int i = 0; i < pawnsOnTile.Length; ++i) {
 						if (i == slot) {
 							continue;
@@ -239,7 +246,6 @@ public class PawnController : NetworkBehaviour {
 							toEliminate.Add(i);
 						}
 					}
-					//}
 
 					foreach (int slot in toEliminate) {
 						foreach (Collider collider in hitColliders) {
@@ -247,7 +253,7 @@ public class PawnController : NetworkBehaviour {
 							PawnController hitPawnController = hitGameObject.GetComponent<PawnController>();
 
 							if (slot == hitPawnController.slot) {
-								hitPawnController.Eliminated();
+								hitPawnController.ServerEliminate();
 								bonusEliminationMove = true;
 							}
 						}
@@ -259,8 +265,13 @@ public class PawnController : NetworkBehaviour {
 
 		if (bonusEliminationMove) {
 			playerController.rollsLeft++;
+			RpcBonusRoll(slot);
 		}
-		
+
+		if (playerController.rollsLeft > 0) {
+			RpcBonusRoll(slot);
+		}
+
 		playerController.pawnSelected = isSelected = isMoving = false;
 		playerController.rolledAmount = 0;
 	}
@@ -269,19 +280,13 @@ public class PawnController : NetworkBehaviour {
 	// whenever is done let the server know?
 
 	[Server]
-	private void Eliminated() {
-		// atbase
-		// currentTileIndex
-
-		staged = true;
+	private void ServerEliminate() {
+		IsStaged = true;
 		currentTileIndex = startTileIndex;
 
-		// set something????
 		TargetMoveToBase(playerController.connectionToClient);
 
-		int randomSound = Random.Range(0, gci.sounds.Length);
-
-		RpcEliminated(randomSound);
+		RpcEliminated(Random.Range(0, gci.sounds.Length));
 	}
 
 	[ClientRpc]
@@ -308,7 +313,7 @@ public class PawnController : NetworkBehaviour {
 	public void Init(PlayerController playerController) {
 		if (this.playerController == null) {
 			this.playerController = playerController;
-			staged = true;
+			IsStaged = true;
 			slot = playerController.slot;
 			SetMaterial();
 			GameController.Player player = GameController.Instance.player[slot];
@@ -387,7 +392,7 @@ public class PawnController : NetworkBehaviour {
 					CmdEnableRendering(true);
 				}
 
-				staged = true;
+				IsStaged = true;
 				baseSlotController.occupied = true;
 				currentTileIndex = startTileIndex;
 				CmdMove(transform.position);

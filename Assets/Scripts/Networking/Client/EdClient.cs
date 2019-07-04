@@ -45,6 +45,8 @@ public class EdClient : MonoBehaviour {
 	private void OnClientConnect(NetworkConnection connection, ConnectMessage message) {
 		Debug.Log("Connected");
 
+		gameObject.GetComponent<NetworkManagerHUD>().showGUI = false;
+
 		// before add player is done, get a packet from the server allowing to connect. (if not awaiting_for_players state then kick)
 		ClientScene.Ready(connection);
 	}

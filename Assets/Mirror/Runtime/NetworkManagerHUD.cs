@@ -26,7 +26,7 @@ namespace Mirror
             if (!showGUI)
                 return;
 
-            GUILayout.BeginArea(new Rect(10 + offsetX, 40 + offsetY, 215, 9999));
+            GUILayout.BeginArea(new Rect(10 + offsetX, 40 + offsetY, Screen.width - 40, 9999));
             if (!NetworkClient.isConnected && !NetworkServer.active)
             {
                 if (!NetworkClient.active)
@@ -34,7 +34,7 @@ namespace Mirror
                     // LAN Host
                     if (Application.platform != RuntimePlatform.WebGLPlayer)
                     {
-                        if (GUILayout.Button("LAN Host"))
+                        if (GUILayout.Button("LAN Host", GUILayout.Height(200)))
                         {
                             manager.StartHost();
                         }
@@ -42,11 +42,12 @@ namespace Mirror
 
                     // LAN Client + IP
                     GUILayout.BeginHorizontal();
-                    if (GUILayout.Button("LAN Client"))
+
+					if (GUILayout.Button("LAN Client", GUILayout.Height(200)))
                     {
                         manager.StartClient();
                     }
-                    manager.networkAddress = GUILayout.TextField(manager.networkAddress);
+                    manager.networkAddress = GUILayout.TextField(manager.networkAddress, GUILayout.Height(200));
                     GUILayout.EndHorizontal();
 
                     // LAN Server Only
@@ -57,7 +58,7 @@ namespace Mirror
                     }
                     else
                     {
-                        if (GUILayout.Button("LAN Server Only")) manager.StartServer();
+                        if (GUILayout.Button("LAN Server Only", GUILayout.Height(200))) manager.StartServer();
                     }
                 }
                 else
